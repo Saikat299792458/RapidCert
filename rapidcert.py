@@ -37,7 +37,7 @@ def update_tracker(workbook, data):
     # active sheet of the workbook
     worksheet = workbook.sheets.active
 
-    last_row = worksheet.cells.last_cell.row
+    last_row = worksheet.range('A' + str(worksheet.cells.last_cell.row)).end('up').row
     for index, row in enumerate(worksheet.range(f"G1:G{last_row}").rows):
         if row[0].value == data["ID"]:
             if worksheet[f"M{index+1}"].value == "YES" or worksheet[f"K{index+1}"].value == "YES":
@@ -46,7 +46,7 @@ def update_tracker(workbook, data):
                 else:
                     cal_date = datetime.datetime.strptime(data["CalDate"], "%d.%m.%Y")
                     worksheet[f"I{index+1}"].value = cal_date
-                    depts = {"09-": "VBS", "08-": "BBS", "06-": "AHS", "01-": "PRD"}
+                    depts = {"09-": "VBS", "08-": "BBS", "06-": "AHS", "01-": "PRD", "04-": "MBS"}
                     data = f"CAL/{depts.get(data["ID"][:3])}/IH/{int(worksheet[f"A{index+1}"].value):03d}/01-2026"
                     worksheet[f"N{index+1}"].value = data
                     return data
@@ -59,7 +59,8 @@ if __name__ == "__main__":
     trackerPath = {"09-": "\\\\192.168.5.6\\IPL-VLD- Master Plan\\5. Validation Activities_Vaccine\\3. Viral Bulk Suite\\1. VALIDATION & CALIBRATION TRACKER AT VBS\\1. Calibration\\2026\\Calibration Tracker (VBS).xlsx",
                    "08-": "\\\\192.168.5.6\\IPL-VLD- Master Plan\\5. Validation Activities_Vaccine\\2. Bacterial Bulk Suite\\1. VALIDATION & CALIBRATION TRACKER OF BBS\\1. Calibration\\2026\\Calibration Tracker (BBS).xlsx",
                    "06-": "\\\\192.168.5.6\\IPL-VLD- Master Plan\\5. Validation Activities_Vaccine\\7. Animal house\\1. VALIDATION & CALIBRATION TRACKER\\1. Calibration\\2026\\Calibration Tracker (Animal House).xlsx",
-                   "01-": "\\\\192.168.5.6\\IPL-VLD- Master Plan\\5. Validation Activities_Vaccine\\1. Production\\1. VALIDATION & CALIBRATION TRACKERS-VACCINE\\1. Calibration tracker\\2026\\Calibration Tracker (Production).xlsx"}
+                   "01-": "\\\\192.168.5.6\\IPL-VLD- Master Plan\\5. Validation Activities_Vaccine\\1. Production\\1. VALIDATION & CALIBRATION TRACKERS-VACCINE\\1. Calibration tracker\\2026\\Calibration Tracker (Production).xlsx",
+                   "04-": "\\\\192.168.5.6\\IPL-VLD- Master Plan\\5. Validation Activities_Vaccine\\4. Microbiology, QC, QA\\1. VALIDATION & CALIBRATION TRACKER\\1. Calibration Tracker\\2026\\Calibration Tracker (MB).xlsx"}
     workbooks = {}
     cert_files = get_certificate_files()
     log_file = open("rapidcert.log", "a")
@@ -79,8 +80,9 @@ if __name__ == "__main__":
                     backup_folder = os.path.join(os.path.dirname(value), "backup")
                     if not os.path.exists(backup_folder):
                         os.makedirs(backup_folder)
-                    timestamp = datetime.datetime.now().strftime("%Y%m%d%H%M%S")
-                    backup_file = os.path.join(backup_folder, f"Calibration Tracker Backup {timestamp}.xlsx")
+                    timestamp = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+                    original_filename = os.path.splitext(os.path.basename(value))[0]
+                    backup_file = os.path.join(backup_folder, f"{original_filename} Backup {timestamp}.xlsx")
                     shutil.copy2(value, backup_file)
                     workbook = xw.Book(value)
                     workbooks[key] = workbook
