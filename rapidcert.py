@@ -9,7 +9,7 @@ import datetime
 def get_certificate_files():
     root = tk.Tk()
     root.withdraw()  # Hide the root window
-    file_paths = filedialog.askopenfilenames(title="Select Certificate Files", filetypes=[("Excel files", "*.xlsx *.xls")])
+    file_paths = filedialog.askopenfilenames(title="Select Certificate Files", filetypes=[("Excel files", "*.xlsx *.xls")], initialdir="\\\\192.168.5.6\\IPL-VLD-Calibration Management\\4. Vaccine\\For Tracker update")
     return list(file_paths)
 
 # A function to read excel file and extract values of different cells like R72, E72 etc.
@@ -40,13 +40,20 @@ def update_tracker(workbook, data):
     last_row = worksheet.range('A' + str(worksheet.cells.last_cell.row)).end('up').row
     for index, row in enumerate(worksheet.range(f"G1:G{last_row}").rows):
         if row[0].value == data["ID"]:
+            certCal = worksheet[f"I{index+1}"].value
+            certDue = worksheet[f"L{index+1}"].value
+            cal_date = datetime.datetime.strptime(data["CalDate"], "%d.%m.%Y")
+            cal_due_date = datetime.datetime.strptime(data["CalDueDate"], "%d.%m.%Y")
+            # if date gap in data doesn't match with the date gap in the tracker file, return with error message
+            if certDue-certCal != cal_due_date-cal_date:
+                return "Date mismatch. Please check the tracker file."
             if worksheet[f"M{index+1}"].value == "YES" or worksheet[f"K{index+1}"].value == "YES":
                 if worksheet[f"N{index+1}"].value.endswith("2026"):
                     return "Feature of second version is not implemented yet"
                 else:
-                    cal_date = datetime.datetime.strptime(data["CalDate"], "%d.%m.%Y")
                     worksheet[f"I{index+1}"].value = cal_date
-                    depts = {"09-": "VBS", "08-": "BBS", "06-": "AHS", "01-": "PRD", "04-": "MBS"}
+                    depts = {"09-": "VBS", "08-": "BBS", "06-": "AHS", "01-": "PRD", "04-": "MBS", "05-": "ENG"}
+                    # Not all engineering equipment reside in engineering tracker, they can be in any one of the other trackers. So if the ID starts with 05-, then check if it is already present in engineering tracker, if not then check in other trackers and update the certificate number accordingly.
                     data = f"CAL/{depts.get(data["ID"][:3])}/IH/{int(worksheet[f"A{index+1}"].value):03d}/01-2026"
                     worksheet[f"N{index+1}"].value = data
                     return data
@@ -60,8 +67,10 @@ if __name__ == "__main__":
                    "08-": "\\\\192.168.5.6\\IPL-VLD- Master Plan\\5. Validation Activities_Vaccine\\2. Bacterial Bulk Suite\\1. VALIDATION & CALIBRATION TRACKER OF BBS\\1. Calibration\\2026\\Calibration Tracker (BBS).xlsx",
                    "06-": "\\\\192.168.5.6\\IPL-VLD- Master Plan\\5. Validation Activities_Vaccine\\7. Animal house\\1. VALIDATION & CALIBRATION TRACKER\\1. Calibration\\2026\\Calibration Tracker (Animal House).xlsx",
                    "01-": "\\\\192.168.5.6\\IPL-VLD- Master Plan\\5. Validation Activities_Vaccine\\1. Production\\1. VALIDATION & CALIBRATION TRACKERS-VACCINE\\1. Calibration tracker\\2026\\Calibration Tracker (Production).xlsx",
-                   "04-": "\\\\192.168.5.6\\IPL-VLD- Master Plan\\5. Validation Activities_Vaccine\\4. Microbiology, QC, QA\\1. VALIDATION & CALIBRATION TRACKER\\1. Calibration Tracker\\2026\\Calibration Tracker (MB).xlsx"}
+                   "04-": "\\\\192.168.5.6\\IPL-VLD- Master Plan\\5. Validation Activities_Vaccine\\4. Microbiology, QC, QA\\1. VALIDATION & CALIBRATION TRACKER\\1. Calibration Tracker\\2026\\Calibration Tracker (MB).xlsx",
+                   "05-": "\\\\192.168.5.6\\IPL-VLD- Master Plan\\5. Validation Activities_Vaccine\\6. Engineering, HR\\1. VALIDATION & CALIBRATION TRACKER AT R&D\\1. Calibration tracker\\2026\\Calibration Tracker (Engineering,HRD).xlsx"}
     workbooks = {}
+    input("Please open an excel file to suppress the activation wizard of excel when the script is run for the first time. Press Enter after opening the file.")
     cert_files = get_certificate_files()
     log_file = open("rapidcert.log", "a")
     print("ID\t\t\tCalibration Date\tCalibration Due Date\tCertificate No.")
